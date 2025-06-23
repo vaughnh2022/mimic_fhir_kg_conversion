@@ -18,25 +18,43 @@ db = client["mimic"]
 collection = db["fhir"]
 
 
-def convert_to_graphml():
-    rdf_graph = rdflib.ConjunctiveGraph()
-    rdf_graph.parse("final_script.ttl", format="turtle")
+#comment out any entity functions you do not want in the final script for test purposes
+#it takes roughly a minute to create the full script
+def create_ttl_script():
+    time_start = time.time()
+    with open("final_script.ttl", "w") as f:
+        f.write("")
+    print("writing to file")
+    with open('mimic_fhir_script.ttl', 'r', encoding='utf-8') as file:
+        ttl_string = file.read()
+    with open("final_script.ttl", "w") as f:
+        f.write(ttl_string)
+    create_organization_entities()
+    create_location_entities()
+    create_patient_entities()
+    create_encounter_entities()
+    create_procedure_entities()
+    create_condition_entities()
+    create_medicationDispense_entities()
+    create_medicationRequest_entities()
+    create_specimen_entities()
+    create_medication_entities()
+    create_medicationAdministration_entities()
+    create_observation_entities()
+    char_count = 0
+    line_count = 0
+    with open("final_script.ttl", "r", encoding="utf-8") as f:
+        for line in f:
+            line_count += 1
+            char_count += len(line)
+    time_end = time.time()
+    print(f"Script completed in {time_end - time_start:.4f} seconds")   
+    print(f"Character count: {char_count}")
+    print(f"Line count: {line_count}")
 
-    # Initialize a directed multigraph
-    G = nx.MultiDiGraph()
-    x=0
-    # Loop through all triples and add to the graph
-    for s, p, o in rdf_graph:
-        if x%1000==0:
-            print(x)
-        G.add_node(str(s))
-        G.add_node(str(o))
-        G.add_edge(str(s), str(o), label=str(p))
-        x+=1
 
-    # Save to GraphML
-    nx.write_graphml(G, "output.graphml")
-    print("GraphML file written to final_script.graphml")
+#database specific functions
+#these output to the terminal
 
 def get_sample_from_resource_type(resource_type):
     # Find a document that contains the category code
@@ -137,9 +155,8 @@ def collect_one_pipeline():
 
     print(json.dumps(result, indent=2, default=str))
 
-def write_string_to_file(sentence):
-    with open("output.txt", "w") as f:
-        f.write(sentence)
+
+#file writing and sanatization functions
 
 def write_to_middle(insertion):
     with open("middle_man.txt", "a") as f:
@@ -149,14 +166,6 @@ def clear_middle():
     with open("middle_man.txt", "w") as f:
             f.write("")
 
-def write_to_graphml():
-    with open("output.graphml", "r", encoding="utf-8") as txt_file:
-        content = txt_file.read()
-
-    with open("final_script.graphml", "a", encoding="utf-8") as ttl_file:
-        ttl_file.write("\n")
-        ttl_file.write(content)
-
 def move_to_final():
     with open("middle_man.txt", "r", encoding="utf-8") as txt_file:
         content = txt_file.read()
@@ -164,38 +173,7 @@ def move_to_final():
     with open("final_script.ttl", "a", encoding="utf-8") as ttl_file:
         ttl_file.write("\n")
         ttl_file.write(content)
-
-def create_ttl_script():
-    time_start = time.time()
-    with open("final_script.ttl", "w") as f:
-        f.write("")
-    print("writing to file")
-    with open('mimic_fhir_script.ttl', 'r', encoding='utf-8') as file:
-        ttl_string = file.read()
-    with open("final_script.ttl", "w") as f:
-        f.write(ttl_string)
-    create_organization_entities()
-    create_location_entities()
-    create_patient_entities()
-    create_encounter_entities()
-    create_procedure_entities()
-    create_condition_entities()
-    create_medicationDispense_entities()
-    create_medicationRequest_entities()
-    create_specimen_entities()
-    create_medication_entities()
-    create_medicationAdministration_entities()
-    create_observation_entities()
-    char_count = 0
-    line_count = 0
-    with open("final_script.ttl", "r", encoding="utf-8") as f:
-        for line in f:
-            line_count += 1
-            char_count += len(line)
-    time_end = time.time()
-    print(f"Script completed in {time_end - time_start:.4f} seconds")   
-    print(f"Character count: {char_count}")
-    print(f"Line count: {line_count}")
+    clear_middle()
 
 def fhir_exists(word):
     FHIR_OWL_URL = "http://hl7.org/fhir/fhir.ttl"
@@ -222,6 +200,9 @@ def fhir_exists(word):
 def split_refrence(refrence):
     return refrence.split("/")[-1]
 
+def escape_turtle_string(s):
+    return s.replace('\\', '\\\\').replace('"', '\\"')
+
 def get_meta(meta):
     if not meta:
         return ""
@@ -244,9 +225,6 @@ def get_meta(meta):
                 fhir:profile [ fhir:v "{clean_profiles}" ]
             ] ;"""
     return meta_line
-
-def escape_turtle_string(s):
-    return s.replace('\\', '\\\\').replace('"', '\\"')
 
 def sanatize_quotes(s):
      return s.replace('"', '\\"')
@@ -303,6 +281,9 @@ def sanitize_for_kg_literal(text):
 
     return text
 
+
+#these functions create the entities
+
 def create_organization_entities():
     time_start = time.time()
     print("creating organization entities")
@@ -333,7 +314,6 @@ def create_organization_entities():
         write_to_middle(insert)
     time_end = time.time()
     move_to_final()
-    clear_middle()
     print(f"organization entity creation took {time_end - time_start:.4f} seconds")
 
 def create_location_entities():
@@ -366,7 +346,6 @@ def create_location_entities():
         write_to_middle(insert)
     time_end = time.time()
     move_to_final()
-    clear_middle()
     print(f"location entity creation took {time_end - time_start:.4f} seconds")
 
 def create_patient_entities():
@@ -479,7 +458,6 @@ def create_patient_entities():
     time_end = time.time()
     print(f"patient entity creation took {time_end - time_start:.4f} seconds")
     move_to_final()
-    clear_middle()
 
 def create_encounter_entities():
     print("creating entcounter entities")  
@@ -604,7 +582,6 @@ def create_encounter_entities():
 """
         write_to_middle(insert)
     move_to_final()
-    clear_middle()
     time_end = time.time()
     print(f"encounter entity creation took {time_end - time_start:.4f} seconds")
     
@@ -690,7 +667,6 @@ def create_procedure_entities():
     time_end = time.time()
     print(f"procedure entity creation took {time_end - time_start:.4f} seconds")
     move_to_final()
-    clear_middle()
 
 def create_condition_entities():
     print("creating condition entities")
@@ -733,7 +709,6 @@ def create_condition_entities():
     time_end = time.time()
     print(f"condition entity creation took {time_end - time_start:.4f} seconds")
     move_to_final()
-    #clear_middle()
 
 def create_medicationDispense_entities():
     print("creating medication dispense entities")
@@ -814,7 +789,6 @@ def create_medicationDispense_entities():
     time_end = time.time()
     print(f"medication dispense entity creation took {time_end - time_start:.4f} seconds")
     move_to_final()
-    clear_middle()
 
 def create_medicationRequest_entities():
     def get_dispense_request(dispense):
@@ -950,7 +924,6 @@ def create_medicationRequest_entities():
     time_end = time.time()
     print(f"medication request entity creation took {time_end - time_start:.4f} seconds")
     move_to_final()
-    clear_middle()
 
 def create_specimen_entities():
     def get_specimen_type(typa):
@@ -997,7 +970,6 @@ def create_specimen_entities():
     time_end = time.time()
     print(f"specimen entity creation took {time_end - time_start:.4f} seconds")
     move_to_final()
-    clear_middle()
 
 def create_medication_entities():
     def get_medication_identifier(identifier):
@@ -1049,7 +1021,6 @@ def create_medication_entities():
     time_end = time.time()
     print(f"medication entity creation took {time_end - time_start:.4f} seconds")
     move_to_final()
-    clear_middle()
 
 def create_medicationAdministration_entities():
     def get_category(cat):
@@ -1162,7 +1133,6 @@ def create_medicationAdministration_entities():
     time_end = time.time()
     print(f"medication administration entity creation took {time_end - time_start:.4f} seconds")
     move_to_final()
-    #clear_middle()
 
 def create_observation_entities():
     def get_category(cat):
@@ -1324,28 +1294,5 @@ def create_observation_entities():
         write_to_middle(insert)
     time_end = time.time()
     move_to_final()
-    clear_middle()
     print(f"observation entity creation took {time_end - time_start:.4f} seconds")
 
-
-
-
-
-
-#get_distinct_fields("")
-#clear_middle()
-#create_observation_entities()
-#get_resource_type_list()
-#reate_ttl_script()
-#convert_to_graphml()
-#collect_one_pipeline()
-#get_sample_from_resource_type('Observation')
-#get_distinct_fields('Specimen')
-create_ttl_script()
-
-
-#get_fields_in_all_documents()
-
-#create_ttl_script()
-##convert_to_graphml()
-#rite_to_graphml()

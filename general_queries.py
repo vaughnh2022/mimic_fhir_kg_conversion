@@ -655,7 +655,9 @@ def create_procedure_entities():
             fhir:encounter se:{encounter_reference} ;
             {identifier}
             {meta}
+            fhir:code [
 {coding_list}
+            ];
             {category_list}
             {performedDateTime}
             {performedPeriod}
@@ -699,7 +701,9 @@ def create_condition_entities():
                 ]
             ] ;
             {meta}
-{code} ;
+            fhir:code [
+{code}
+            ] ;
             {identifier}
             fhir:encounter se:{encounter} ;
             fhir:subject se:{patient}. 
@@ -991,11 +995,13 @@ def create_medication_entities():
     def get_medication_code(coda):
         if len(coda)==0:
             return ""
-        return f"""fhir:coding [
-                fhir:system  [ fhir:v "{coda['coding'][0]['code']}"^^xsd:anyURI ] ;
-                fhir:code    [ fhir:v "{coda['coding'][0]['code']}" ]
-            ] ;
-            """
+        return f"""fhir:code [
+                fhir:coding [
+                    fhir:system  [ fhir:v "{coda['coding'][0]['code']}"^^xsd:anyURI ] ;
+                    fhir:code    [ fhir:v "{coda['coding'][0]['code']}" ]
+                ] 
+            ];
+"""
     time_start = time.time()
     print("creating Medication entities")
     pipeline = [
@@ -1075,9 +1081,11 @@ def create_medicationAdministration_entities():
         if len(coda)==0:
             return ""
         display=f" ;\n\t\t\t\t\tfhir:display [ fhir:v \"{coda['coding'][0]['display']}\" ]" if coda['coding'][0].get('display',None) else ""
-        return f"""\t\t\tfhir:coding [
-                fhir:system  [ fhir:v "{coda['coding'][0]['code']}"^^xsd:anyURI ] ;
-                fhir:code    [ fhir:v "{coda['coding'][0]['code']}" ]{display}
+        return f"""\t\t\tfhir:code [
+                fhir:coding [
+                    fhir:system  [ fhir:v "{coda['coding'][0]['code']}"^^xsd:anyURI ] ;
+                    fhir:code    [ fhir:v "{coda['coding'][0]['code']}" ]{display}
+                ]
             ] ;
 """
     def get_ma_identifier(iden):
@@ -1296,3 +1304,4 @@ def create_observation_entities():
     move_to_final()
     print(f"observation entity creation took {time_end - time_start:.4f} seconds")
 
+create_ttl_script()

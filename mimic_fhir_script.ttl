@@ -1,0 +1,50 @@
+# ==============================================================================
+# RDF/Turtle Script Converted from the MIMIC FHIR Dataset
+# ==============================================================================
+
+# ------------------------------------------------------------------------------ 
+# TABLE OF CONTENTS
+#
+# 1.  Prefix Definitions
+#
+#
+# 2.  Data Insertion
+#     2.1 Organization Data
+#     2.2 Location Data
+#     2.3 Patient Data
+#     2.4 Encounter Data
+#     2.5 Procedure Data
+#     2.6 Condition Data
+#     2.7 MedicationDispense Data
+#     2.8 MedicationRequest Data
+#     2.9 Specimen Data
+#     2.10 Medication Data
+#     2.11 MedicationAdministration Data
+#     2.12 Observation Data
+#
+# end.
+# ------------------------------------------------------------------------------
+
+# Notes:
+# - This file is written in RDF/Turtle format.
+# - Use Ctrl+F (or Cmd+F on macOS) to quickly navigate to sections.
+
+
+
+
+
+#---------------------------------
+# 1. Prefix Imports 
+#---------------------------------
+
+
+@prefix se: <http://example.org/myontology#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix fhir: <http://hl7.org/fhir/> .
+
+#---------------------------------
+# 2. Data Insertion
+#---------------------------------

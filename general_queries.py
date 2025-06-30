@@ -21,6 +21,9 @@ collection = db["fhir"]
 #comment out any entity functions you do not want in the final script for test purposes
 #it takes roughly a minute to create the full script
 def create_ttl_script():
+    """
+    This calls all needed functions to create the full knowledge graph and output it to final_script.ttl
+    """
     time_start = time.time()
     with open("final_script.ttl", "w") as f:
         f.write("")
@@ -57,7 +60,13 @@ def create_ttl_script():
 #these output to the terminal
 
 def get_sample_from_resource_type(resource_type):
-    # Find a document that contains the category code
+    """
+    This fuction prints a sample json document in terminal from the fhir dataset given a resource type
+    Args:
+        resource_type (string): a value each document has that turns into classes in the knowledge graph
+    Returns:
+        str: sample json document
+    """
     sample = collection.find_one({
         "resourceType": resource_type
     })
@@ -65,6 +74,9 @@ def get_sample_from_resource_type(resource_type):
     return sample
 
 def get_resource_type_list():
+    """
+    This function prints all resource types and the count in the mongoDB database
+    """
     pipeline = [
         {
             "$group": {
@@ -82,6 +94,9 @@ def get_resource_type_list():
         print(f"{result['_id']}, Count: {result['count']}")
 
 def get_fields_in_all_documents():
+    """
+    This function outputs fields in all documents in the mongoDB database
+    """
     total_docs = collection.count_documents({})
     pipeline = [
     {
@@ -111,6 +126,11 @@ def get_fields_in_all_documents():
         print(x)
 
 def get_distinct_fields(resource_type):
+    """
+    This function prints all distinct fields in a given resource_type (fields become properties in the knowledge graph)
+    Args:
+        resource_type (string): a value each document has that turns into classes in the knowledge graph
+    """
     def extract_all_paths(doc, prefix=""):
         paths = set()
         if isinstance(doc, dict):
@@ -150,7 +170,9 @@ def get_distinct_fields(resource_type):
         print(f"{field_path:<40} | Count: {count:>4} | {percentage:>5.1f}%")
 
 def collect_one_pipeline():
-    #
+    """
+    This fuction prints a document from a collect one pipeline. Use this to define specific fields you want to exist and see the json output.
+    """
     result = collection.find_one({"resourceType":"Observation","valueString":{"$exists":True}})
 
     print(json.dumps(result, indent=2, default=str))
@@ -159,14 +181,25 @@ def collect_one_pipeline():
 #file writing and sanatization functions
 
 def write_to_middle(insertion):
+    """
+    appends string to middle_man.txt
+    Args:
+        insertion (string): a string of text
+    """
     with open("middle_man.txt", "a") as f:
             f.write(insertion)
 
 def clear_middle():
+    """
+    This fuction empties the text file middle_man.txt
+    """
     with open("middle_man.txt", "w") as f:
             f.write("")
 
 def move_to_final():
+    """
+    This function appends middle_man.txt to final_script.ttl then clears middle_man.txt
+    """
     with open("middle_man.txt", "r", encoding="utf-8") as txt_file:
         content = txt_file.read()
 
@@ -175,35 +208,32 @@ def move_to_final():
         ttl_file.write(content)
     clear_middle()
 
-def fhir_exists(word):
-    FHIR_OWL_URL = "http://hl7.org/fhir/fhir.ttl"
-
-    # Define FHIR namespace
-    FHIR = Namespace("http://hl7.org/fhir/")
-
-    # Create RDF graph
-    g = Graph()
-    g.parse(FHIR_OWL_URL, format="turtle")
-
-    # Define the property to check
-    property_to_check = FHIR[word]
-
-    # Check if it exists as a property in the ontology
-    exists = (property_to_check, None, None) in g or (None, None, property_to_check) in g
-
-    # Print result
-    if exists:
-        print(f"{property_to_check} exists in the FHIR ontology.")
-    else:
-        print(f"{property_to_check} is NOT defined in the FHIR ontology.")
-
 def split_refrence(refrence):
+    """
+    This fuction removes the leading *resource_type*/*id* from refrences to construct the knowledge graph connection
+    Args:
+        refrence (string): a json refrence holding *resource_type*/*id*
+    Returns:
+        str: just *id*
+    """
     return refrence.split("/")[-1]
 
 def escape_turtle_string(s):
+    """
+    This fuction sanatizes text with slashes so that it compiles under python and rdf rules
+    Returns:
+        str: sanatized text
+    """
     return s.replace('\\', '\\\\').replace('"', '\\"')
 
 def get_meta(meta):
+    """
+    This fuction converts meta information into a knowledge graph structure (note this information is not currently in the knowledge graph)
+    Args:
+        meta (dict): a dictionary holding meta information
+    Returns:
+        str: knowledge graph meta property entry
+    """
     if not meta:
         return ""
     meta_version = meta.get('versionId', '')
@@ -227,9 +257,23 @@ def get_meta(meta):
     return meta_line
 
 def sanatize_quotes(s):
-     return s.replace('"', '\\"')
+    """
+    This fuction sanatizes quotes in a string for python and rdf compliance
+    Args:
+        s (string): a string of text
+    Returns:
+        str: sanatized string
+    """
+    return s.replace('"', '\\"')
 
 def get_coding(coding):
+    """
+    This fuction converts coding information into knowledge graph format
+    Args:
+        coding (dict): a dictionary holding coding information
+    Returns:
+        str: the converted coding property 
+    """
     if len(coding)==0:
         return ""
     typeCodingSystem = coding[0].get('system', '')
@@ -243,6 +287,13 @@ def get_coding(coding):
     return coding_line
 
 def get_small_coding(coding):
+    """
+    This fuction converts coding information into knowledge graph format without display
+    Args:
+        coding (dict): a dictionary holding coding information
+    Returns:
+        str: the converted coding property 
+    """
     if len(coding)==0:
         return ""
     typeCodingSystem = coding[0].get('system', '')
@@ -254,6 +305,13 @@ def get_small_coding(coding):
     return coding_line
 
 def get_identifier(identifier):
+    """
+    This fuction converts identifier information into knowledge graph format
+    Args:
+        identifier (dict): a dictionary holding coding information
+    Returns:
+        str: the converted identifier property 
+    """
     if len(identifier)==0:
         return ""
     identifierSystem=identifier[0].get('system',"")  if identifier else ""
@@ -266,8 +324,11 @@ def get_identifier(identifier):
     
 def sanitize_for_kg_literal(text):
     """
-    Escapes a string to be safely inserted as a literal in a FHIR RDF Turtle knowledge graph.
-    Escapes: double quotes, backslashes, newlines, carriage returns.
+    This fuction sanatizes text for both slashes and quotes
+    Args:
+        text (string): a string of text
+    Returns:
+        str: the sanatized text 
     """
     if not isinstance(text, str):
         text = str(text)
@@ -282,7 +343,23 @@ def sanitize_for_kg_literal(text):
     return text
 
 
-#these functions create the entities
+#these functions create the entities, note this is the general structure below
+# create_*resource_type*_entities():
+#     
+#     collection of functions to convert specific fields
+#
+#     mongoDB pipeline to query the database
+#
+#     for result in results:
+#         iterates through each document
+#
+#         creates a string of a single entity in the knowledge graph
+#
+#         appends this single entity to middle_man.txt
+#
+#     appends middle_man.txt to final_script.ttl then clears middle_man.txt
+
+
 
 def create_organization_entities():
     time_start = time.time()
@@ -302,7 +379,6 @@ def create_organization_entities():
         coding_list=get_coding(type_list[0].get('coding', [])) if type_list else []
         insert =f"""se:{fhirID} a fhir:Organization ;
             fhir:id [ fhir:v "{fhirID}" ] ;
-            {meta}
             {identifier}
             fhir:name   [ fhir:v "{name}" ] ;
             fhir:active [ fhir:v "{str(active).lower()}"^^xsd:boolean ] ;
@@ -333,7 +409,6 @@ def create_location_entities():
         coding_list=get_coding(type_list.get('coding', [])) if type_list else []
         managingOrganization=split_refrence(result['managingOrganization']['reference'])
         insert =f"""se:{fhirID} a fhir:Location ;
-            {meta}
             fhir:id [ fhir:v "{fhirID}" ] ;
             fhir:status [ fhir:v "{status}" ] ;
             fhir:name [ fhir:v "{name}" ] ;
@@ -434,12 +509,11 @@ def create_patient_entities():
         gender = result.get('gender')
         birthDate = result.get('birthDate')
         deceased = result.get('deceasedDateTime')
-        deceasedDateTime = f"fhir:deceasedDateTime [ fhir:v \"{deceased}\"^^xsd:date ] ;" if deceased else ""
+        deceasedDateTime = f"fhir:deceasedDateTime [ fhir:v \"{deceased}\"^^xsd:dateTime ] ;" if deceased else ""
         extension = get_extension(result.get('extension', []))
         
         insert = f"""se:{fhirID} a fhir:Patient ;
             fhir:id [ fhir:v "{fhirID}" ] ;
-            {meta}
 {extension}
             {communication}{identifier}
             {deceasedDateTime}
@@ -519,8 +593,8 @@ def create_encounter_entities():
         return priority_line 
     def get_period(period):
         period_line = f"""fhir:period [
-                fhir:start [ fhir:v "{period['start']}"^^xsd:date ] ;
-                fhir:end [ fhir:v "{period['end']}"^^xsd:date ] 
+                fhir:start [ fhir:v "{period['start']}"^^xsd:dateTime ] ;
+                fhir:end [ fhir:v "{period['end']}"^^xsd:dateTime ] 
             ] """
         return period_line
     def get_type(typa):
@@ -574,7 +648,7 @@ def create_encounter_entities():
             {partOf}
             {serviceProvider}
 {type_line}
-            {meta}{serviceType}{priority}
+{serviceType}{priority}
             {location}{identifier}
             {hospitalization}
             fhir:subject se:{patient}  .
@@ -608,8 +682,8 @@ def create_procedure_entities():
         start = per['start']
         end = per['end']
         return f"""fhir:performedPeriod [
-                fhir:start [ fhir:v "{start}"^^xsd:date ] ;
-                fhir:end [ fhir:v "{end}"^^xsd:date ] 
+                fhir:start [ fhir:v "{start}"^^xsd:dateTime ] ;
+                fhir:end [ fhir:v "{end}"^^xsd:dateTime ] 
                 ];
     """   
     def get_body(body):
@@ -645,7 +719,7 @@ def create_procedure_entities():
         coding_list = get_code_list(result['code'])
         meta = get_meta(result.get('meta', {}))
         category_list = get_category(result.get('category', []))
-        performedDateTime = f"fhir:performedDateTime [ fhir:v \"{result.get('performedDateTime')}\"^^xsd:date ] ;" if result.get('performedDateTime') else ""
+        performedDateTime = f"fhir:performedDateTime [ fhir:v \"{result.get('performedDateTime')}\"^^xsd:dateTime ] ;" if result.get('performedDateTime') else ""
         performedPeriod = get_period(result.get('performedPeriod', []))
         bodySite = get_body(result.get('bodySite', []))
         
@@ -654,7 +728,6 @@ def create_procedure_entities():
             fhir:status [ fhir:v "{status}" ] ;
             fhir:encounter se:{encounter_reference} ;
             {identifier}
-            {meta}
             fhir:code [
 {coding_list}
             ];
@@ -700,7 +773,6 @@ def create_condition_entities():
                     fhir:code    [ fhir:v "{catCode}" ] 
                 ]
             ] ;
-            {meta}
             fhir:code [
 {code}
             ] ;
@@ -779,7 +851,6 @@ def create_medicationDispense_entities():
             fhir:context se:{context} ;
             fhir:subject se:{subject} ;
             fhir:authorizingPrescription se:{authorizingPrescription} ;
-            {meta}
             fhir:medicationCodeableConcept [
                 {mccCoding}
             ] ;
@@ -800,8 +871,8 @@ def create_medicationRequest_entities():
             return ""
         return f"""fhir:dispenseRequest [
                 fhir:validityPeriod [
-                    fhir:start [ fhir:v "{dispense['validityPeriod']['start']}"^^xsd:date ] ;
-                    fhir:end [ fhir:v "{dispense['validityPeriod']['end']}"^^xsd:date ]
+                    fhir:start [ fhir:v "{dispense['validityPeriod']['start']}"^^xsd:dateTime ] ;
+                    fhir:end [ fhir:v "{dispense['validityPeriod']['end']}"^^xsd:dateTime ]
                 ]
             ] ;
 """
@@ -914,14 +985,13 @@ def create_medicationRequest_entities():
             fhir:intent [ fhir:v "{intent}" ] ;
             fhir:status [ fhir:v "{status}"] ;
             {medication}
-            {meta} 
             {dispenseRequest}
             fhir:dosageInstruction [
                 {dosageInstruction}
             ] ;
             {identifier}
             {mcc}
-            fhir:authoredOn [ fhir:v "{authoredOn}"^^xsd:date ] .
+            fhir:authoredOn [ fhir:v "{authoredOn}"^^xsd:dateTime ] .
         
 """
         write_to_middle(insert)
@@ -943,7 +1013,7 @@ def create_specimen_entities():
         if len(col)==0:
             return ""
         return f"""fhir:collection [
-                fhir:collectedDateTime [ fhir:v "{col['collectedDateTime']}"^^xsd:date ] 
+                fhir:collectedDateTime [ fhir:v "{col['collectedDateTime']}"^^xsd:dateTime ] 
             ] ; 
             """
         pass
@@ -960,10 +1030,9 @@ def create_specimen_entities():
         meta = get_meta(result.get('meta', {}))
         type_list = get_specimen_type(result.get('type', []))
         subject = split_refrence(result['subject']['reference'])
-        collectedDateTime = f"\t\t\tfhir:collectedDateTime [ fhir:v \"{result['collection']['collectedDateTime']}\"^^xsd:date ] ;" if len(result.get('collection',[]))!=0 else ""
+        collectedDateTime = f"\t\t\tfhir:collectedDateTime [ fhir:v \"{result['collection']['collectedDateTime']}\"^^xsd:dateTime ] ;" if len(result.get('collection',[]))!=0 else ""
         insert =f"""se:{fhirID} a fhir:Specimen ;
             fhir:id [ fhir:v "{fhirID}" ] ;
-            {meta}
             {identifier}
             {type_list}
 {collectedDateTime}
@@ -1016,7 +1085,6 @@ def create_medication_entities():
         meta = get_meta(result.get('meta', {}))
         ingredients=get_ingredients(result.get('ingredient',[]))
         insert =f"""se:{fhirID} a fhir:Medication ;
-            {meta}
 {identifier}
 {ingredients}
             {code}
@@ -1072,8 +1140,8 @@ def create_medicationAdministration_entities():
         if len(period)==0:
             return ""
         period_line = f"""\t\t\tfhir:effectivePeriod [
-                fhir:start [ fhir:v "{period['start']}"^^xsd:date ] ;
-                fhir:end [ fhir:v "{period['end']}"^^xsd:date ] 
+                fhir:start [ fhir:v "{period['start']}"^^xsd:dateTime ] ;
+                fhir:end [ fhir:v "{period['end']}"^^xsd:dateTime ] 
             ] ;
 """
         return period_line
@@ -1111,7 +1179,7 @@ def create_medicationAdministration_entities():
     results = collection.aggregate(pipeline)
     for result in results:
         fhirID=result.get('id')
-        effectiveDateTime =f"\t\t\tfhir:effectiveDateTime [ fhir:v \"{result['effectiveDateTime']}\"^^xsd:date ] ;" if len(result.get('effectiveDateTime',[])) else ""
+        effectiveDateTime =f"\t\t\tfhir:effectiveDateTime [ fhir:v \"{result['effectiveDateTime']}\"^^xsd:dateTime ] ;" if len(result.get('effectiveDateTime',[])) else ""
         request =f"\t\t\tfhir:request se:{split_refrence(result['request']['reference'])} ;" if len(result.get('request',[]))!=0 else ""
         context =f"\t\t\tfhir:context se:{split_refrence(result['context']['reference'])} ;" if len(result.get('context',[]))!=0 else ""
         meta = get_meta(result.get('meta', {}))
@@ -1132,7 +1200,6 @@ def create_medicationAdministration_entities():
 {period}
 {effectiveDateTime}
 {dosage}
-            {meta}
             fhir:subject se:{subject} ; 
             fhir:status [ fhir:v "{status}"] .
 
@@ -1152,10 +1219,12 @@ def create_observation_entities():
             ] .
 """
     def get_o_code(code):
-        return f"""\t\t\tfhir:coding [
-                fhir:system  [ fhir:v "{code['coding'][0]['system']}"^^xsd:anyURI ] ;
-                fhir:code    [ fhir:v "{code['coding'][0]['system']}" ] ;
-                fhir:display [ fhir:v "{code['coding'][0]['display']}" ]
+        return f"""\t\t\tfhir:code [
+                fhir:coding [
+                    fhir:system  [ fhir:v "{code['coding'][0]['system']}"^^xsd:anyURI ] ;
+                    fhir:code    [ fhir:v "{code['coding'][0]['system']}" ] ;
+                    fhir:display [ fhir:v "{code['coding'][0]['display']}" ]
+                ]
             ];
 """
     def get_extension(ex):
@@ -1268,7 +1337,7 @@ def create_observation_entities():
         meta = get_meta(result.get('meta', {}))
         hasMember=get_members(result.get('hasMember',[]))
         interpretation=get_interpretation(result.get('interpretation',[]))
-        issued=f"\t\t\tfhir:issued [ fhir:v \"{result['issued']}\"^^xsd:date ] ; " if result.get('issued', None) else ""
+        issued=f"\t\t\tfhir:issued [ fhir:v \"{result['issued']}\"^^xsd:dateTime ] ; " if result.get('issued', None) else ""
         valueDateTime=f"\t\t\tfhir:valueDateTime [ fhir:v \"{result['valueDateTime']}\"^^xsd:dateTime ] ; " if result.get('valueDateTime', None) else ""
         valueString=f"\t\t\tfhir:valueString [ fhir:v \"{sanatize_quotes(result['valueString'])}\" ] ; " if result.get('valueString', None) else ""
         note=get_note(result.get('note',[]))
@@ -1289,7 +1358,6 @@ def create_observation_entities():
 {referenceRange}
 {interpretation}
 {code}
-            {meta}
             {identifier}
 {hasMember}
 {derivedFrom}

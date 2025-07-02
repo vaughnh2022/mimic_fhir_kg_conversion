@@ -342,6 +342,36 @@ def sanitize_for_kg_literal(text):
 
     return text
 
+def get_unique_values_by_field(resource_type, field_path, collection):
+
+    documents = collection.find({"resourceType": resource_type})
+    keys = field_path.split(".")
+    unique_values = set()
+    count = 0
+
+    for doc in documents:
+        count += 1
+        value = doc
+        for key in keys:
+            if isinstance(value, list):
+                try:
+                    key = int(key)
+                except ValueError:
+                    value = None
+                    break
+            try:
+                value = value[key]
+            except (KeyError, IndexError, TypeError):
+                value = None
+                break
+        if value is not None:
+            unique_values.add(value)
+
+    print(f"\nUnique values for '{field_path}' (found in {count} documents):")
+    for v in unique_values:
+        print(f"  - {v}")
+
+    return unique_values
 
 #these functions create the entities, note this is the general structure below
 # create_*resource_type*_entities():
@@ -1373,3 +1403,4 @@ def create_observation_entities():
     print(f"observation entity creation took {time_end - time_start:.4f} seconds")
 
 create_ttl_script()
+#get_resource_type_list()

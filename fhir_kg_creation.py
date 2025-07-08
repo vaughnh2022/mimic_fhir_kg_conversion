@@ -1,16 +1,20 @@
+#--------------------------------------------------------------
+#
+# This python file coverts JSON Mimic Fhir Data into a fhir compliant Knowledge Graph and Ontology
+#
+# To create the ttl script you need the fhir_kg_script.ttl
+#
+# I query a local mongoDB database with the MIMIC IV FHIR Demo on it, to use my code you will need to upload a combined ndjson file into your local database 
+#
+#----------------------------------------------------------------
+
+
 from pymongo import MongoClient
 import json 
-#import langcodes
-import networkx as nx
 import time
-import sys
-import argparse
-from pathlib import Path
-from rdflib import Graph
-from rdflib.exceptions import ParserError
-import logging
 
-# Connect to a local MongoDB instance (default port 27017)
+
+# Connect to MongoDB
 client = MongoClient("mongodb://localhost:27017/")
 
 # Access a database
@@ -22,15 +26,15 @@ collection = db["fhir"]
 #it takes roughly a minute to create the full script
 def create_ttl_script():
     """
-    This calls all needed functions to create the full knowledge graph and output it to final_script.ttl
+    This calls all needed functions to create the full knowledge graph and output it to fhir_final_script.ttl
     """
     time_start = time.time()
-    with open("final_script.ttl", "w") as f:
+    with open("fhir_final_script.ttl", "w") as f:
         f.write("")
     print("writing to file")
-    with open('mimic_fhir_script.ttl', 'r', encoding='utf-8') as file:
+    with open('fhir_kg_script.ttl', 'r', encoding='utf-8') as file:
         ttl_string = file.read()
-    with open("final_script.ttl", "w") as f:
+    with open("fhir_final_script.ttl", "w") as f:
         f.write(ttl_string)
     create_organization_entities()
     create_location_entities()
@@ -46,7 +50,7 @@ def create_ttl_script():
     create_observation_entities()
     char_count = 0
     line_count = 0
-    with open("final_script.ttl", "r", encoding="utf-8") as f:
+    with open("fhir_final_script.ttl", "r", encoding="utf-8") as f:
         for line in f:
             line_count += 1
             char_count += len(line)
@@ -173,9 +177,40 @@ def collect_one_pipeline():
     """
     This fuction prints a document from a collect one pipeline. Use this to define specific fields you want to exist and see the json output.
     """
-    result = collection.find_one({"resourceType":"Observation","valueString":{"$exists":True}})
+    result = collection.find_one({"resourceType":"MedicationDispense","authorizingPrescription":{"$exists":True}})
 
     print(json.dumps(result, indent=2, default=str))
+
+def get_unique_values_by_field(resource_type, field_path, collection):
+
+    documents = collection.find({"resourceType": resource_type})
+    keys = field_path.split(".")
+    unique_values = set()
+    count = 0
+
+    for doc in documents:
+        count += 1
+        value = doc
+        for key in keys:
+            if isinstance(value, list):
+                try:
+                    key = int(key)
+                except ValueError:
+                    value = None
+                    break
+            try:
+                value = value[key]
+            except (KeyError, IndexError, TypeError):
+                value = None
+                break
+        if value is not None:
+            unique_values.add(value)
+
+    print(f"\nUnique values for '{field_path}' (found in {count} documents):")
+    for v in unique_values:
+        print(f"  - {v}")
+
+    return unique_values
 
 
 #file writing and sanatization functions
@@ -198,12 +233,12 @@ def clear_middle():
 
 def move_to_final():
     """
-    This function appends middle_man.txt to final_script.ttl then clears middle_man.txt
+    This function appends middle_man.txt to fhir_final_script.ttl then clears middle_man.txt
     """
     with open("middle_man.txt", "r", encoding="utf-8") as txt_file:
         content = txt_file.read()
 
-    with open("final_script.ttl", "a", encoding="utf-8") as ttl_file:
+    with open("fhir_final_script.ttl", "a", encoding="utf-8") as ttl_file:
         ttl_file.write("\n")
         ttl_file.write(content)
     clear_middle()
@@ -342,41 +377,10 @@ def sanitize_for_kg_literal(text):
 
     return text
 
-def get_unique_values_by_field(resource_type, field_path, collection):
-
-    documents = collection.find({"resourceType": resource_type})
-    keys = field_path.split(".")
-    unique_values = set()
-    count = 0
-
-    for doc in documents:
-        count += 1
-        value = doc
-        for key in keys:
-            if isinstance(value, list):
-                try:
-                    key = int(key)
-                except ValueError:
-                    value = None
-                    break
-            try:
-                value = value[key]
-            except (KeyError, IndexError, TypeError):
-                value = None
-                break
-        if value is not None:
-            unique_values.add(value)
-
-    print(f"\nUnique values for '{field_path}' (found in {count} documents):")
-    for v in unique_values:
-        print(f"  - {v}")
-
-    return unique_values
-
 #these functions create the entities, note this is the general structure below
 # create_*resource_type*_entities():
 #     
-#     collection of functions to convert specific fields
+#     collection of functions to convert specific nested fields
 #
 #     mongoDB pipeline to query the database
 #
@@ -387,7 +391,7 @@ def get_unique_values_by_field(resource_type, field_path, collection):
 #
 #         appends this single entity to middle_man.txt
 #
-#     appends middle_man.txt to final_script.ttl then clears middle_man.txt
+#     appends middle_man.txt to fhir_final_script.ttl then clears middle_man.txt
 
 
 
@@ -880,7 +884,7 @@ def create_medicationDispense_entities():
             {identifier}
             fhir:context se:{context} ;
             fhir:subject se:{subject} ;
-            fhir:authorizingPrescription se:{authorizingPrescription} ;
+            fhir:authorizingPrescription se:MR-{authorizingPrescription} ;
             fhir:medicationCodeableConcept [
                 {mccCoding}
             ] ;
@@ -1008,7 +1012,7 @@ def create_medicationRequest_entities():
         intent = result['intent']
         status = result['status']
         medication = f"fhir:medicationReference se:{split_refrence(result['medicationReference']['reference'])} ;" if len(result.get('medicationReference', [])) > 0 else ""
-        insert = f"""se:{fhirID} a fhir:MedicationRequest ;
+        insert = f"""se:MR-{fhirID} a fhir:MedicationRequest ;
             fhir:id [ fhir:v "{fhirID}" ] ;
             fhir:encounter se:{encounter}  ;
             fhir:subject se:{subject}  ;
@@ -1054,8 +1058,12 @@ def create_specimen_entities():
         {"$project":{"_id":1,"id":1,"identifier":1,"collection":1,"type":1,"subject":1,"meta":1}}
     ]
     results = collection.aggregate(pipeline)
+    hashset=set()
     for result in results:
         fhirID=result.get('id')
+        if fhirID in hashset:
+            continue
+        hashset.add(fhirID)
         identifier = get_identifier(result.get('identifier', []))
         meta = get_meta(result.get('meta', {}))
         type_list = get_specimen_type(result.get('type', []))
@@ -1402,5 +1410,3 @@ def create_observation_entities():
     move_to_final()
     print(f"observation entity creation took {time_end - time_start:.4f} seconds")
 
-create_ttl_script()
-#get_resource_type_list()

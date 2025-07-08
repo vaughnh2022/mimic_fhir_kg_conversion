@@ -1,17 +1,22 @@
+#--------------------------------------------------------------
+#
+# This python file coverts JSON Mimic Fhir Data into a flattened knowledge graph and complete ontology
+#
+# To create the ttl script you need the updated_mimic_fhir_script.ttl
+#
+# for full functionality you need the general_queries.py file
+#
+# I query a local mongoDB database with the MIMIC IV FHIR Demo on it, to use my code you will need to upload a combined ndjson file into your local database 
+#
+#----------------------------------------------------------------
+
 from pymongo import MongoClient
 import json 
-#import langcodes
-import networkx as nx
 import time
-import sys
-import argparse
-from pathlib import Path
-from rdflib import Graph
-from rdflib.exceptions import ParserError
-import logging
 import uuid
+from fhir_kg_creation import get_distinct_fields, get_fields_in_all_documents, get_resource_type_list, get_sample_from_resource_type, get_unique_values_by_field
 
-# Connect to a local MongoDB instance (default port 27017)
+# Connect to MongoDB
 client = MongoClient("mongodb://localhost:27017/")
 
 # Access a database
@@ -26,12 +31,12 @@ def create_ttl_script():
     This calls all needed functions to create the full knowledge graph and output it to final_script.ttl
     """
     time_start = time.time()
-    with open("updated_final_script.ttl", "w") as f:
+    with open("flattened_final_script.ttl", "w") as f:
         f.write("")
     print("writing to file")
-    with open('updated_mimic_fhir_script.ttl', 'r', encoding='utf-8') as file:
+    with open('flattened_kg_script.ttl', 'r', encoding='utf-8') as file:
         ttl_string = file.read()
-    with open("updated_final_script.ttl", "w") as f:
+    with open("flattened_final_script.ttl", "w") as f:
         f.write(ttl_string)
     create_organization_entities()
     create_location_entities()
@@ -47,7 +52,7 @@ def create_ttl_script():
     create_observation_entities()
     char_count = 0
     line_count = 0
-    with open("updated_final_script.ttl", "r", encoding="utf-8") as f:
+    with open("flattened_final_script.ttl", "r", encoding="utf-8") as f:
         for line in f:
             line_count += 1
             char_count += len(line)
@@ -60,116 +65,6 @@ def create_ttl_script():
 #database specific functions
 #these output to the terminal
 
-def get_sample_from_resource_type(resource_type):
-    """
-    This fuction prints a sample json document in terminal from the fhir dataset given a resource type
-    Args:
-        resource_type (string): a value each document has that turns into classes in the knowledge graph
-    Returns:
-        str: sample json document
-    """
-    sample = collection.find_one({
-        "resourceType": resource_type
-    })
-    print(json.dumps(sample, indent=2, default=str))
-    return sample
-
-def get_resource_type_list():
-    """
-    This function prints all resource types and the count in the mongoDB database
-    """
-    pipeline = [
-        {
-            "$group": {
-                "_id": "$resourceType",
-                "count": { "$sum": 1 }
-            }
-        },
-        {
-            "$sort": { "count": -1 }
-        }
-    ]
-    
-    results = collection.aggregate(pipeline)
-    for result in results:
-        print(f"{result['_id']}, Count: {result['count']}")
-
-def get_fields_in_all_documents():
-    """
-    This function outputs fields in all documents in the mongoDB database
-    """
-    total_docs = collection.count_documents({})
-    pipeline = [
-    {
-        "$project": {
-            "fields": { "$objectToArray": "$$ROOT" }
-        }
-    },
-    {
-        "$unwind": "$fields"
-    },
-    {
-        "$group": {
-            "_id": "$fields.k",
-            "count": { "$sum": 1 }
-        }
-    },
-    {
-        "$match": {
-            "count": total_docs  # Only keep fields that appear in all docs
-        }
-    }
-    ]
-
-    # Step 3: Run pipeline and print results
-    fields_in_all_docs = collection.aggregate(pipeline)
-    for x in fields_in_all_docs:
-        print(x)
-
-def get_distinct_fields(resource_type):
-    """
-    This function prints all distinct fields in a given resource_type (fields become properties in the knowledge graph)
-    Args:
-        resource_type (string): a value each document has that turns into classes in the knowledge graph
-    """
-    def extract_all_paths(doc, prefix=""):
-        paths = set()
-        if isinstance(doc, dict):
-            for key, value in doc.items():
-                current_path = f"{prefix}.{key}" if prefix else key
-                paths.add(current_path)
-            
-                if isinstance(value, (dict, list)):
-                    paths.update(extract_all_paths(value, current_path))
-                    
-        elif isinstance(doc, list):
-            for i, item in enumerate(doc):
-                current_path = f"{prefix}.{i}" if prefix else str(i)
-                if isinstance(item, (dict, list)):
-                    paths.update(extract_all_paths(item, current_path))
-                    
-        return paths
-
-    documents = collection.find({"resourceType": resource_type})
-    
-    field_counts = {}
-    total_docs = 0
-    
-    for doc in documents:
-        total_docs += 1
-        paths = extract_all_paths(doc)
-        for path in paths:
-            field_counts[path] = field_counts.get(path, 0) + 1
-
-    print(f"Field analysis for resourceType: {resource_type}")
-    print(f"Total documents analyzed: {total_docs}")
-    print("-" * 60)
-    
-    for field_path in sorted(field_counts.keys()):
-        count = field_counts[field_path]
-        percentage = (count / total_docs * 100) if total_docs > 0 else 0
-        print(f"{field_path:<40} | Count: {count:>4} | {percentage:>5.1f}%")
-
 def collect_one_pipeline():
     """
     This fuction prints a document from a collect one pipeline. Use this to define specific fields you want to exist and see the json output.
@@ -181,12 +76,17 @@ def collect_one_pipeline():
 
 #file writing and sanatization functions
 
-def generate_id(input_string):
-    # You can use a custom namespace or one of the predefined ones
+def generate_id(unique_string):
+    """
+    This fuction creates a id in the structure of the mimic fhir id given a string
+    (Note that the same unique_string will output the same id)
+    Args:
+        unique_string (string): a unique string that is converted to an ID
+    Returns:
+        str: random id
+    """
     namespace = uuid.UUID('ee172322-118b-5716-abbc-18e4c5437e15')
-    
-    # Generate a UUID based on the string and namespace
-    return uuid.uuid5(namespace, input_string)
+    return uuid.uuid5(namespace, unique_string)
 
 def write_to_middle(insertion):
     """
@@ -211,7 +111,7 @@ def move_to_final():
     with open("middle_man.txt", "r", encoding="utf-8") as txt_file:
         content = txt_file.read()
 
-    with open("updated_final_script.ttl", "a", encoding="utf-8") as ttl_file:
+    with open("flattened_final_script.ttl", "a", encoding="utf-8") as ttl_file:
         ttl_file.write("\n")
         ttl_file.write(content)
     clear_middle()
@@ -234,36 +134,6 @@ def escape_turtle_string(s):
     """
     return s.replace('\\', '\\\\').replace('"', '\\"')
 
-def get_meta(meta):
-    """
-    This fuction converts meta information into a knowledge graph structure (note this information is not currently in the knowledge graph)
-    Args:
-        meta (dict): a dictionary holding meta information
-    Returns:
-        str: knowledge graph meta property entry
-    """
-    if not meta:
-        return ""
-    meta_version = meta.get('versionId', '')
-    meta_lastUpdated = meta.get('lastUpdated', '')
-    meta_source = meta.get('source', '')
-    meta_profiles = meta.get('profile', [])
-    
-    # If meta_profiles is a list, join it into a clean string without brackets
-    if isinstance(meta_profiles, list):
-        clean_profiles = ", ".join(meta_profiles)
-    else:
-        clean_profiles = str(meta_profiles)
-    clean_profiles.strip("[]'\"")
-    
-    meta_line = f"""fhir:meta [
-                fhir:versionId [ fhir:v "{meta_version}" ] ;
-                fhir:lastUpdated [ fhir:v "{meta_lastUpdated}"^^xsd:dateTime ] ;
-                fhir:source [ fhir:v "{meta_source}" ] ;
-                fhir:profile [ fhir:v "{clean_profiles}" ]
-            ] ;"""
-    return meta_line
-
 def sanatize_quotes(s):
     """
     This fuction sanatizes quotes in a string for python and rdf compliance
@@ -273,62 +143,6 @@ def sanatize_quotes(s):
         str: sanatized string
     """
     return s.replace('"', '\\"')
-
-def ___get_coding(coding):
-    """
-    This fuction converts coding information into knowledge graph format
-    Args:
-        coding (dict): a dictionary holding coding information
-    Returns:
-        str: the converted coding property 
-    """
-    if len(coding)==0:
-        return ""
-    typeCodingSystem = coding[0].get('system', '')
-    typeCodingCode = coding[0].get('code', '')
-    typeCodingDisplay = coding[0].get('display', '')
-    coding_line =f"""\t\t\t\tfhir:coding [
-                    fhir:system  [ fhir:v "{typeCodingSystem}"^^xsd:anyURI ] ;
-                    fhir:code    [ fhir:v "{typeCodingCode}" ] ;
-                    fhir:display [ fhir:v "{typeCodingDisplay}" ]
-                ] """
-    return coding_line
-
-def _get_small_coding(coding):
-    """
-    This fuction converts coding information into knowledge graph format without display
-    Args:
-        coding (dict): a dictionary holding coding information
-    Returns:
-        str: the converted coding property 
-    """
-    if len(coding)==0:
-        return ""
-    typeCodingSystem = coding[0].get('system', '')
-    typeCodingCode = coding[0].get('code', '')
-    coding_line =f"""fhir:coding [
-                        fhir:system  [ fhir:v "{typeCodingSystem}"^^xsd:anyURI ] ;
-                        fhir:code    [ fhir:v "{typeCodingCode}" ] 
-                    ] """
-    return coding_line
-
-def _get_identifier(identifier):
-    """
-    This fuction converts identifier information into knowledge graph format
-    Args:
-        identifier (dict): a dictionary holding coding information
-    Returns:
-        str: the converted identifier property 
-    """
-    if len(identifier)==0:
-        return ""
-    identifierSystem=identifier[0].get('system',"")  if identifier else ""
-    identifierValue=identifier[0].get('value',"")  if identifier else ""
-    identifier_line=f"""fhir:identifier [
-                fhir:system [ fhir:v "{identifierSystem}"^^xsd:anyURI ] ;
-                fhir:value  [ fhir:v "{sanatize_quotes(identifierValue)}" ]
-            ] ;"""
-    return identifier_line
     
 def sanitize_for_kg_literal(text):
     """
@@ -350,41 +164,10 @@ def sanitize_for_kg_literal(text):
 
     return text
 
-def get_unique_values_by_field(resource_type, field_path, collection):
-
-    documents = collection.find({"resourceType": resource_type})
-    keys = field_path.split(".")
-    unique_values = set()
-    count = 0
-
-    for doc in documents:
-        count += 1
-        value = doc
-        for key in keys:
-            if isinstance(value, list):
-                try:
-                    key = int(key)
-                except ValueError:
-                    value = None
-                    break
-            try:
-                value = value[key]
-            except (KeyError, IndexError, TypeError):
-                value = None
-                break
-        if value is not None:
-            unique_values.add(value)
-
-    print(f"\nUnique values for '{field_path}' (found in {count} documents):")
-    for v in unique_values:
-        print(f"  - {v}")
-
-    return unique_values
-
 #these functions create the entities, note this is the general structure below
 # create_*resource_type*_entities():
 #     
-#     collection of functions to convert specific fields
+#     collection of functions to convert specific nested fields
 #
 #     mongoDB pipeline to query the database
 #
@@ -444,7 +227,6 @@ def create_organization_entities():
         identifier = get_identifier(result.get('identifier', []))
         name=result.get('name')
         active=result.get('active')
-        meta = get_meta(result.get('meta', {}))
         type_list = result.get('type', [])
         coding_list=get_coding(type_list[0].get('coding', [])) if type_list else []
         insert =f"""se:{fhirID} a fhir:Organization ;
@@ -489,7 +271,6 @@ def create_location_entities():
         fhirID=result.get('id')
         status=result.get('status')
         name=result.get('name')
-        meta = get_meta(result.get('meta', {}))
         type_list = result.get('physicalType', [])
         coding_list=get_coding(type_list.get('coding', [])) if type_list else []
         managingOrganization=split_refrence(result['managingOrganization']['reference'])
@@ -550,7 +331,6 @@ def create_patient_entities():
     results = collection.aggregate(pipeline)
     
     for result in results:
-        meta = get_meta(result.get('meta', {}))
         fhirID = result.get('id')
         identifier = get_identifier(result.get('identifier', []))
         maritalStatusCode = result['maritalStatus']['coding'][0]['code']
@@ -667,7 +447,6 @@ def create_encounter_entities():
         patient = split_refrence(result['subject']['reference'])
         fhirID = result.get('id')
         identifier = get_identifier_with_reference(result.get('identifier', []))
-        meta = get_meta(result.get('meta', []))
         hospitalization = get_hospitalization(result.get('hospitalization', ""))
         partOf = f"fhir:partOfReference se:{split_refrence(result['partOf']['reference'])} ;" if result.get("partOf") else ""
         serviceProvider = f"fhir:serviceProviderReference se:{split_refrence(result['serviceProvider']['reference'])} ;" if result.get('serviceProvider') else ""
@@ -780,7 +559,6 @@ def create_procedure_entities():
         encounter_reference = split_refrence(result['encounter']['reference'])
         identifier = get_identifier(result.get('identifier', []))
         coding_list = get_coding(result['code'])
-        meta = get_meta(result.get('meta', {}))
         category_list = get_category(result.get('category', []))
         performedDateTime = f"\t\t\tfhir:performedDateTime \"{result.get('performedDateTime')}\" ;" if result.get('performedDateTime') else ""
         performedPeriod = get_period(result.get('performedPeriod', []))
@@ -926,7 +704,6 @@ def create_medicationDispense_entities():
         context = split_refrence(result['context']['reference'])
         subject = split_refrence(result['subject']['reference'])
         authorizingPrescription = split_refrence(result['authorizingPrescription'][0]['reference'])
-        meta = get_meta(result.get('meta', {}))
         mccCoding = get_small_coding(result['medicationCodeableConcept']['coding'])
         status = result['status']
         dosageID=generate_id("md dosage"+fhirID)
@@ -1325,14 +1102,3 @@ def create_observation_entities():
     time_end = time.time()
     move_to_final()
     print(f"observation entity creation took {time_end - time_start:.4f} seconds")
-
-#get_sample_from_resource_type("Encounter")
-#get_distinct_fields("Observation")
-create_ttl_script()
-#get_resource_type_list()
-
-
-
-#temp()
-#collect_one_pipeline()
-#get_resource_type_list()

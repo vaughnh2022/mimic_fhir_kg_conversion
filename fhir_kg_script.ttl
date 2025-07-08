@@ -1,0 +1,114 @@
+# ==============================================================================
+# RDF/Turtle Script Converted from the MIMIC FHIR Dataset
+# ==============================================================================
+
+# ------------------------------------------------------------------------------ 
+# TABLE OF CONTENTS
+#
+# 1. Prefix Definitions
+#   
+# 2. Class Definitions
+#
+# 3. Object Property Definitions
+#
+# 4. Data Insertion
+#
+# end.
+# ------------------------------------------------------------------------------
+
+# Notes:
+# - This file is written in RDF/Turtle format.
+# - Use Ctrl+F (or Cmd+F on macOS) to quickly navigate to sections.
+
+
+
+
+
+#---------------------------------
+# 1. Prefix Imports 
+#---------------------------------
+
+
+@prefix se: <http://example.org/myontology#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix fhir: <http://hl7.org/fhir/> .
+
+#---------------------------------
+# 2. Class Definitions 
+#---------------------------------
+
+fhir:Organization a owl:Class .
+fhir:Location a owl:Class .
+fhir:Patient a owl:Class .
+fhir:Encounter a owl:Class .
+fhir:Procedure a owl:Class .
+fhir:Condition a owl:Class .
+fhir:MedicationDispense a owl:Class .
+fhir:MedicationRequest a owl:Class .
+fhir:Medication a owl:Class .
+fhir:Specimen a owl:Class .
+fhir:MedicationAdministration a owl:Class .
+fhir:Observation a owl:Class .
+
+#---------------------------------
+# 3. OWL Object Property Connections
+#---------------------------------
+
+fhir:managingOrganization a owl:ObjectProperty ;
+        rdfs:domain [owl:unionOf ( fhir:Location fhir:Patient)] ;
+        rdfs:range fhir:Organization .
+
+fhir:locationReference a owl:ObjectProperty ;
+        rdfs:domain fhir:Encounter ;
+        rdfs:range fhir:Location .
+
+fhir:partOf a owl:ObjectProperty ;
+        rdfs:domain fhir:Encounter ;
+        rdfs:range fhir:Encounter .
+
+fhir:serviceProvider a owl:ObjectProperty ;
+        rdfs:domain fhir:Encounter ;
+        rdfs:range fhir:Organization .
+
+fhir:subject a owl:ObjectProperty ;
+        rdfs:domain [owl:unionOf ( fhir:Encounter fhir:Conditon fhir:MedicationDispense fhir:MedicationRequest fhir:MedicationAdministration fhir:Observation)] ;
+        rdfs:range fhir:Patient .
+
+fhir:encounter a owl:ObjectProperty ;
+        rdfs:domain [ owl:unionOf ( fhir:Procedure fhir:Condition fhir:MedicationRequest fhir:Observation)] ;
+        rdfs:range fhir:Encounter .
+
+fhir:context a owl:ObjectProperty ;
+        rdfs:domain [owl:unionOf ( fhir:MedicationDispense fhir:MedicationAdministration)] ;
+        rdfs:range fhir:Encounter .
+
+fhir:authorizingPrescription a owl:ObjectProperty ;
+        rdfs:domain fhir:MedicationDispense ;
+        rdfs:range fhir:MedicationRequest .
+
+fhir:medicationReference a owl:ObjectProperty ;
+        rdfs:domain fhir:MedicationRequest ;
+        rdfs:range fhir:Medication .
+
+fhir:ingredient a owl:ObjectProperty ;
+        rdfs:domain fhir:Medication ;
+        rdfs:range fhir:Medication .
+
+fhir:request a owl:ObjectProperty ;
+        rdfs:domain fhir:MedicationAdministration ;
+        rdfs:range fhir:MedicationDispense .
+
+fhir:hasMember a owl:ObjectProperty ;
+        rdfs:domain fhir:Observation ;
+        rdfs:range fhir:Observation .
+
+fhir:derivedFrom a owl:ObjectProperty ;
+        rdfs:domain fhir:Observation ;
+        rdfs:range fhir:Observation .
+
+#---------------------------------
+# 4. Data Insertion
+#---------------------------------

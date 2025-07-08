@@ -1,0 +1,564 @@
+# ==============================================================================
+# RDF/Turtle Script Converted from the MIMIC FHIR Dataset
+# ==============================================================================
+
+# ------------------------------------------------------------------------------ 
+# TABLE OF CONTENTS
+#
+# 1. Prefix Definitions
+#   
+# 2. Class Definitions
+#
+# 3. Object Property Definitions
+#
+# 4. Data Property Definitions
+#
+# 5. Data Insertion
+#     5.1 Organization Data
+#     5.2 Location Data
+#     5.3 Patient Data
+#     5.4 Encounter Data
+#     5.5 Procedure Data
+#     5.6 Condition Data
+#     5.7 MedicationDispense Data
+#     5.8 MedicationRequest Data
+#     5.9 Specimen Data
+#     5.10 Medication Data
+#     5.11 MedicationAdministration Data
+#     5.12 Observation Data
+#
+# end.
+# ------------------------------------------------------------------------------
+
+# Notes:
+# - This file is written in RDF/Turtle format.
+# - Use Ctrl+F (or Cmd+F on macOS) to quickly navigate to sections.
+
+
+
+
+
+#---------------------------------
+# 1. Prefix Imports 
+#---------------------------------
+
+
+@prefix se: <http://example.org/myontology#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix fhir: <http://hl7.org/fhir/> .
+
+#---------------------------------
+# 1. Class Definition 
+#---------------------------------
+
+fhir:Organization a owl:Class .
+fhir:Location a owl:Class .
+fhir:Patient a owl:Class .
+fhir:Encounter a owl:Class .
+fhir:Procedure a owl:Class .
+fhir:Condition a owl:Class .
+fhir:MedicationDispense a owl:Class .
+fhir:MedicationRequest a owl:Class .
+fhir:Medication a owl:Class .
+fhir:Specimen a owl:Class .
+fhir:MedicationAdministration a owl:Class .
+fhir:Observation a owl:Class .
+fhir:LocationEncounter a owl:Class .
+fhir:DosageInstruction a owl:Class .
+
+#---------------------------------
+# 3. OWL Object Property Connections
+#---------------------------------
+
+fhir:managingOrganizationReference a owl:ObjectProperty ;
+        rdfs:domain [owl:unionOf ( fhir:Location fhir:Patient)] ;
+        rdfs:range fhir:Organization .
+
+fhir:locationReference a owl:ObjectProperty ;
+        rdfs:domain fhir:LocationEncounter ;
+        rdfs:range fhir:Location .
+
+fhir:locationEncounterReference a owl:ObjectProperty ;
+        rdfs:domain fhir:Encounter ;
+        rdfs:range fhir:LocationEncounter .
+
+fhir:partOfReference a owl:ObjectProperty ;
+        rdfs:domain fhir:Encounter ;
+        rdfs:range fhir:Encounter .
+
+fhir:serviceProviderReference a owl:ObjectProperty ;
+        rdfs:domain fhir:Encounter ;
+        rdfs:range fhir:Organization .
+
+fhir:subjectReference a owl:ObjectProperty ;
+        rdfs:domain [owl:unionOf ( fhir:Encounter fhir:Condition fhir:MedicationDispense fhir:MedicationRequest fhir:MedicationAdministration fhir:Observation)] ;
+        rdfs:range fhir:Patient .
+
+fhir:encounterReference a owl:ObjectProperty ;
+        rdfs:domain [ owl:unionOf ( fhir:Procedure fhir:Condition fhir:MedicationRequest fhir:Observation)] ;
+        rdfs:range fhir:Encounter .
+
+fhir:contextReference a owl:ObjectProperty ;
+        rdfs:domain [owl:unionOf ( fhir:MedicationDispense fhir:MedicationAdministration)] ;
+        rdfs:range fhir:Encounter .
+
+fhir:authorizingPrescriptionReference a owl:ObjectProperty ;
+        rdfs:domain fhir:MedicationDispense ;
+        rdfs:range fhir:MedicationRequest .
+
+fhir:assignerReference a owl:ObjectProperty ;
+        rdfs:domain fhir:Encounter ;
+        rdfs:range fhir:Organization .
+
+fhir:DosageInstructionReference a owl:ObjectProperty ;
+		rdfs:domain [owl:unionOf ( fhir:MedicationDispense fhir:MedicationRequest)] ;
+		rdfs:range fhir:DosageInstruction .
+
+fhir:medicationReference a owl:ObjectProperty ;
+        rdfs:domain fhir:MedicationRequest ;
+        rdfs:range fhir:Medication .
+
+fhir:ingredientReference a owl:ObjectProperty ;
+        rdfs:domain fhir:Medication ;
+        rdfs:range fhir:Medication .
+
+fhir:requestReference a owl:ObjectProperty ;
+        rdfs:domain fhir:MedicationAdministration ;
+        rdfs:range fhir:MedicationDispense .
+
+fhir:hasMemberReference a owl:ObjectProperty ;
+        rdfs:domain fhir:Observation ;
+        rdfs:range fhir:Observation .
+
+fhir:derivedFromReference a owl:ObjectProperty ;
+        rdfs:domain fhir:Observation ;
+        rdfs:range fhir:Observation .
+
+#---------------------------------
+# 4. Data Property Definitions 
+#---------------------------------
+
+
+fhir:name a owl:DatatypeProperty ;
+		rdfs:domain [owl:unionOf ( fhir:Organization fhir:Location)] ;
+		rdfs:range xsd:string .
+	
+fhir:id a owl:DatatypeProperty ;
+        rdfs:domain [
+		owl:unionOf (
+			fhir:Organization fhir:Location fhir:Patient fhir:Encounter 
+			fhir:Procedure fhir:Condition fhir:MedicationDispense fhir:MedicationRequest 
+			fhir:Medication fhir:Specimen fhir:MedicationAdministration fhir:Observation
+		)
+	] ;
+        rdfs:range xsd:string .	
+
+fhir:active a owl:DatatypeProperty ;
+		rdfs:domain fhir:Organization ;
+		rdfs:range xsd:boolean .
+
+fhir:typeCodingSystem a owl:DatatypeProperty ;
+		rdfs:domain [owl:unionOf ( fhir:Organization fhir:Location fhir:Encounter fhir:Specimen)] ;
+		rdfs:range xsd:anyURI .
+		
+fhir:typeCodingCode a owl:DatatypeProperty ;
+		rdfs:domain [owl:unionOf ( fhir:Organization fhir:Location fhir:Encounter fhir:Specimen)] ;
+		rdfs:range xsd:string .
+		
+fhir:typeCodingDisplay a owl:DatatypeProperty ;
+		rdfs:domain [owl:unionOf ( fhir:Organization fhir:Location fhir:Encounter fhir:Specimen)] ;
+		rdfs:range xsd:string .
+		
+fhir:identifierSystem a owl:DatatypeProperty ;
+		rdfs:domain [owl:unionOf ( fhir:Organization fhir:Patient fhir:Encounter fhir:Procedure fhir:Condition fhir:MedicationDispense fhir:MedicationRequest fhir:Specimen fhir:Medication fhir:Observation)] ;
+		rdfs:range xsd:anyURI .
+
+fhir:identifierValue a owl:DatatypeProperty ;
+		rdfs:domain [owl:unionOf ( fhir:Organization fhir:Patient fhir:Encounter fhir:Procedure fhir:Condition fhir:MedicationDispense fhir:MedicationRequest fhir:Specimen fhir:Medication fhir:Observation)] ;
+		rdfs:range xsd:string .
+
+fhir:status a owl:DatatypeProperty ;
+		rdfs:domain [owl:unionOf ( fhir:Location fhir:Encounter fhir:Procedure fhir:MedicationDispense fhir:MedicationRequest fhir:MedicationAdministration fhir:Observation)] ;
+		rdfs:range xsd:string .	
+
+fhir:deceasedDateTime a owl:DatatypeProperty ;
+		rdfs:domain fhir:Patient ;
+		rdfs:range xsd:dateTime .
+		
+fhir:communicationCodingCode a owl:DatatypeProperty ;
+		rdfs:domain fhir:Patient ;
+		rdfs:range xsd:string .
+		
+fhir:communicationCodingSystem a owl:DatatypeProperty ;
+		rdfs:domain fhir:Patient ;
+		rdfs:range xsd:anyURI .
+		
+fhir:race a owl:DatatypeProperty ;
+		rdfs:domain fhir:Patient ;
+		rdfs:range xsd:string .
+		
+fhir:ethnicity a owl:DatatypeProperty ;
+		rdfs:domain fhir:Patient ;
+		rdfs:range xsd:string .
+		
+fhir:gender a owl:DatatypeProperty ;
+		rdfs:domain fhir:Patient ;
+		rdfs:range xsd:string .
+		
+fhir:birthDate a owl:DatatypeProperty ;
+		rdfs:domain fhir:Patient ;
+		rdfs:range xsd:date .
+		
+fhir:maritalStatusCodingCode a owl:DatatypeProperty ;
+		rdfs:domain fhir:Patient ;
+		rdfs:range xsd:string .
+		
+fhir:maritalStatusCodingSystem a owl:DatatypeProperty ;
+		rdfs:domain fhir:Patient ;
+		rdfs:range xsd:anyURI .
+
+fhir:classCode a owl:DatatypeProperty ;
+		rdfs:domain fhir:Encounter ;
+		rdfs:range xsd:string .
+		
+fhir:classSystem a owl:DatatypeProperty ;
+		rdfs:domain fhir:Encounter ;
+		rdfs:range xsd:anyURI .
+
+fhir:periodStart a owl:DatatypeProperty ;
+		rdfs:domain [owl:unionOf ( fhir:Encounter fhir:LocationEncounter)] ;
+		rdfs:range xsd:dateTime .
+		
+fhir:periodEnd a owl:DatatypeProperty ;
+		rdfs:domain [owl:unionOf ( fhir:Encounter fhir:LocationEncounter)] ;
+		rdfs:range xsd:dateTime .
+		
+fhir:serviceTypeCodingCode a owl:DatatypeProperty ;
+		rdfs:domain [owl:unionOf ( fhir:Encounter fhir:LocationEncounter)] ;
+		rdfs:range xsd:string .
+		
+fhir:serviceTypeCodingSystem a owl:DatatypeProperty ;
+		rdfs:domain fhir:Encounter ;
+		rdfs:range xsd:anyURI .
+		
+fhir:priorityCodingValue a owl:DatatypeProperty ;
+		rdfs:domain fhir:Encounter ;
+		rdfs:range xsd:string .
+		
+fhir:priorityCodingSystem a owl:DatatypeProperty ;
+		rdfs:domain fhir:Encounter ;
+		rdfs:range xsd:anyURI .
+
+fhir:identifierUse a owl:DatatypeProperty ;
+		rdfs:domain fhir:Encounter ;
+		rdfs:range xsd:string .
+		
+fhir:admitSourceCode a owl:DatatypeProperty ;
+		rdfs:domain fhir:Encounter ;
+		rdfs:range xsd:string .
+		
+fhir:admitSourceSystem a owl:DatatypeProperty ;
+		rdfs:domain fhir:Encounter ;
+		rdfs:range xsd:anyURI .
+		
+fhir:dischargeSourceCode a owl:DatatypeProperty ;
+		rdfs:domain fhir:Encounter ;
+		rdfs:range xsd:string .
+		
+fhir:dischargeSourceSystem a owl:DatatypeProperty ;
+		rdfs:domain fhir:Encounter ;
+		rdfs:range xsd:anyURI .
+
+fhir:codeCodingSystem a owl:DatatypeProperty ;
+		rdfs:domain [owl:unionOf ( fhir:Procedure fhir:Condition fhir:Medication fhir:MedicationAdministration fhir:Observation)] ;
+		rdfs:range xsd:anyURI .
+		
+fhir:codeCodingCode a owl:DatatypeProperty ;
+		rdfs:domain [owl:unionOf ( fhir:Procedure fhir:Condition fhir:Medication fhir:MedicationAdministration fhir:Observation)] ;
+		rdfs:range xsd:string .
+		
+fhir:codeCodingDisplay a owl:DatatypeProperty ;
+		rdfs:domain [owl:unionOf ( fhir:Procedure fhir:Condition fhir:MedicationAdministration fhir:Observation)] ;
+		rdfs:range xsd:string .
+		
+fhir:categoryCodingSystem a owl:DatatypeProperty ;
+		rdfs:domain [owl:unionOf ( fhir:Procedure fhir:Condition fhir:MedicationAdministration fhir:Observation)] ;
+		rdfs:range xsd:anyURI .
+		
+fhir:categoryCodingCode a owl:DatatypeProperty ;
+		rdfs:domain [owl:unionOf ( fhir:Procedure fhir:Condition fhir:MedicationAdministration fhir:Observation)] ;
+		rdfs:range xsd:string .
+		
+fhir:performedDateTime a owl:DatatypeProperty ;
+		rdfs:domain fhir:Encounter ;
+		rdfs:range xsd:dateTime .
+		
+fhir:performedPeriodStart a owl:DatatypeProperty ;
+		rdfs:domain fhir:Procedure ;
+		rdfs:range xsd:dateTime .
+		
+fhir:performedPeriodEnd a owl:DatatypeProperty ;
+		rdfs:domain fhir:Procedure ;
+		rdfs:range xsd:dateTime .
+		
+fhir:bodySiteSystem a owl:DatatypeProperty ;
+		rdfs:domain fhir:Procedure ;
+		rdfs:range xsd:anyURI .
+		
+fhir:bodySiteCode a owl:DatatypeProperty ;
+		rdfs:domain  fhir:Procedure ;
+		rdfs:range xsd:string .
+		
+fhir:mccCodingSystem a owl:DatatypeProperty ;
+		rdfs:domain [owl:unionOf ( fhir:MedicationDispense fhir:MedicationRequest)] ;
+		rdfs:range xsd:anyURI .
+		
+fhir:mccCodingCode a owl:DatatypeProperty ;
+		rdfs:domain [owl:unionOf ( fhir:MedicationDispense fhir:MedicationRequest)] ;
+		rdfs:range xsd:string .
+
+fhir:intent a owl:DatatypeProperty ;
+		rdfs:domain fhir:MedicationRequest ;
+		rdfs:range xsd:string .	
+		
+fhir:dispenseRequestValidityPeriodStart a owl:DatatypeProperty ;
+		rdfs:domain fhir:MedicationRequest ;
+		rdfs:range xsd:dateTime .
+		
+fhir:dispenseRequestValidityPeriodEnd a owl:DatatypeProperty ;
+		rdfs:domain fhir:MedicationRequest ;
+		rdfs:range xsd:dateTime .
+		
+fhir:identifierTypeCodingSystem a owl:DatatypeProperty ;
+		rdfs:domain fhir:MedicationRequest ;
+		rdfs:range xsd:anyURI .
+		
+fhir:identifierTypeCodingCode a owl:DatatypeProperty ;
+		rdfs:domain fhir:MedicationRequest ;
+		rdfs:range xsd:string .
+		
+fhir:identifierTypeCodingDisplay a owl:DatatypeProperty ;
+		rdfs:domain fhir:MedicationRequest ;
+		rdfs:range xsd:string .
+
+fhir:doseQuantitySystem a owl:DatatypeProperty ;
+		rdfs:domain fhir:DosageInstruction ;
+		rdfs:range xsd:anyURI .
+		
+fhir:doseQuantityCode a owl:DatatypeProperty ;
+		rdfs:domain fhir:DosageInstruction ;
+		rdfs:range xsd:string .
+		
+fhir:doseQuantityUnit a owl:DatatypeProperty ;
+		rdfs:domain fhir:DosageInstruction ;
+		rdfs:range xsd:string .
+		
+fhir:doseQuantityValue a owl:DatatypeProperty ;
+		rdfs:domain fhir:DosageInstruction ;
+		rdfs:range xsd:string .
+		
+fhir:maxDosePerPeriodDenominatorSystem a owl:DatatypeProperty ;
+		rdfs:domain fhir:DosageInstruction ;
+		rdfs:range xsd:anyURI .
+
+fhir:maxDosePerPeriodDenominatorUnit a owl:DatatypeProperty ;
+		rdfs:domain fhir:DosageInstruction ;
+		rdfs:range xsd:string .
+		
+fhir:maxDosePerPeriodDenominatorValue a owl:DatatypeProperty ;
+		rdfs:domain fhir:DosageInstruction ;
+		rdfs:range xsd:string .
+		
+fhir:maxDosePerPeriodNumeratorValue a owl:DatatypeProperty ;
+		rdfs:domain fhir:DosageInstruction ;
+		rdfs:range xsd:string .
+		
+fhir:timingCodeCodingSystem a owl:DatatypeProperty ;
+		rdfs:domain fhir:DosageInstruction ;
+		rdfs:range xsd:anyURI .
+		
+fhir:timingCodeCodingCode a owl:DatatypeProperty ;
+		rdfs:domain fhir:DosageInstruction ;
+		rdfs:range xsd:string .
+		
+fhir:timingRepeatDuration a owl:DatatypeProperty ;
+		rdfs:domain fhir:DosageInstruction ;
+		rdfs:range xsd:string .
+		
+fhir:timingRepeatDurationUnit a owl:DatatypeProperty ;
+		rdfs:domain fhir:DosageInstruction ;
+		rdfs:range xsd:string .
+		
+fhir:routeCodingCode a owl:DatatypeProperty ;
+		rdfs:domain fhir:DosageInstruction ;
+		rdfs:range xsd:anyURI .
+		
+fhir:routeCodingSystem a owl:DatatypeProperty ;
+		rdfs:domain fhir:DosageInstruction ;
+		rdfs:range xsd:string .
+
+fhir:collectedDateTime a owl:DatatypeProperty ;
+		rdfs:domain fhir:Procedure ;
+		rdfs:range xsd:dateTime .
+
+fhir:effectiveDateTime a owl:DatatypeProperty ;
+		rdfs:domain [owl:unionOf ( fhir:MedicationAdministration fhir:Observation)] ;
+		rdfs:range xsd:dateTime .
+
+fhir:dosageRateQuantitySystem a owl:DatatypeProperty ;
+		rdfs:domain fhir:MedicationAdministration ;
+		rdfs:range xsd:anyURI .
+		
+fhir:dosageRateQuantityUnit a owl:DatatypeProperty ;
+		rdfs:domain fhir:MedicationAdministration ;
+		rdfs:range xsd:string .
+
+fhir:dosageRateQuantityValue a owl:DatatypeProperty ;
+		rdfs:domain fhir:MedicationAdministration ;
+		rdfs:range xsd:string .
+
+fhir:dosageRateCode a owl:DatatypeProperty ;
+		rdfs:domain fhir:MedicationAdministration ;
+		rdfs:range xsd:string .
+
+fhir:methodCodingcode a owl:DatatypeProperty ;
+		rdfs:domain fhir:MedicationAdministration ;
+		rdfs:range xsd:string .
+
+fhir:methodCodingsystem a owl:DatatypeProperty ;
+		rdfs:domain fhir:MedicationAdministration ;
+		rdfs:range xsd:anyURI .
+
+fhir:doseSystem a owl:DatatypeProperty ;
+		rdfs:domain fhir:MedicationAdministration ;
+		rdfs:range xsd:anyURI .
+
+fhir:doseText a owl:DatatypeProperty ;
+		rdfs:domain fhir:MedicationAdministration ;
+		rdfs:range xsd:string .
+
+fhir:doseUnit a owl:DatatypeProperty ;
+		rdfs:domain fhir:MedicationAdministration ;
+		rdfs:range xsd:string .
+
+fhir:doseCode a owl:DatatypeProperty ;
+		rdfs:domain fhir:MedicationAdministration ;
+		rdfs:range xsd:string .
+
+fhir:doseValue a owl:DatatypeProperty ;
+		rdfs:domain fhir:MedicationAdministration ;
+		rdfs:range xsd:string .
+
+fhir:effectivePeriodStart a owl:DatatypeProperty ;
+		rdfs:domain fhir:MedicationAdministration ;
+		rdfs:range xsd:dateTime .
+
+fhir:effectivePeriodEnd a owl:DatatypeProperty ;
+		rdfs:domain fhir:MedicationAdministration ;
+		rdfs:range xsd:dateTime .
+
+fhir:extensionUrl a owl:DatatypeProperty ;
+		rdfs:domain fhir:Observation ;
+		rdfs:range xsd:anyURI .
+
+fhir:extensionValueQuantityComparator a owl:DatatypeProperty ;
+		rdfs:domain fhir:Observation ;
+		rdfs:range xsd:string .
+
+fhir:extensionValueQuantityValue a owl:DatatypeProperty ;
+		rdfs:domain fhir:Observation ;
+		rdfs:range xsd:string .
+
+fhir:extensionValueString a owl:DatatypeProperty ;
+		rdfs:domain fhir:Observation ;
+		rdfs:range xsd:string .
+
+fhir:interpretationCodingSystem a owl:DatatypeProperty ;
+		rdfs:domain fhir:Observation ;
+		rdfs:range xsd:anyURI .
+
+fhir:interpretationCodingCode a owl:DatatypeProperty ;
+		rdfs:domain fhir:Observation ;
+		rdfs:range xsd:string .
+
+fhir:noteText a owl:DatatypeProperty ;
+		rdfs:domain fhir:Observation ;
+		rdfs:range xsd:string .
+
+fhir:rrHighSystem a owl:DatatypeProperty ;
+		rdfs:domain fhir:Observation ;
+		rdfs:range xsd:anyURI .
+
+fhir:rrLowSystem a owl:DatatypeProperty ;
+		rdfs:domain fhir:Observation ;
+		rdfs:range xsd:anyURI .
+
+fhir:rrHighUnit a owl:DatatypeProperty ;
+		rdfs:domain fhir:Observation ;
+		rdfs:range xsd:string .
+
+fhir:rrHighValue a owl:DatatypeProperty ;
+		rdfs:domain fhir:Observation ;
+		rdfs:range xsd:string .
+
+fhir:rrHighCode a owl:DatatypeProperty ;
+		rdfs:domain fhir:Observation ;
+		rdfs:range xsd:string .
+
+fhir:rrLowUnit a owl:DatatypeProperty ;
+		rdfs:domain fhir:Observation ;
+		rdfs:range xsd:string .
+
+fhir:rrLowValue a owl:DatatypeProperty ;
+		rdfs:domain fhir:Observation ;
+		rdfs:range xsd:string .
+
+fhir:rrLowCode a owl:DatatypeProperty ;
+		rdfs:domain fhir:Observation ;
+		rdfs:range xsd:string .
+
+fhir:vccCodingSystem a owl:DatatypeProperty ;
+		rdfs:domain fhir:Observation ;
+		rdfs:range xsd:anyURI .
+		
+fhir:vccCodingCode a owl:DatatypeProperty ;
+		rdfs:domain fhir:Observation ;
+		rdfs:range xsd:string .
+
+fhir:vccCodingDisplay a owl:DatatypeProperty ;
+		rdfs:domain fhir:Observation ;
+		rdfs:range xsd:string .
+
+fhir:valueQuantitySystem a owl:DatatypeProperty ;
+		rdfs:domain fhir:Observation ;
+		rdfs:range xsd:anyURI .
+
+fhir:valueQuantityValue a owl:DatatypeProperty ;
+		rdfs:domain fhir:Observation ;
+		rdfs:range xsd:string .
+		
+fhir:valueQuantityComparator a owl:DatatypeProperty ;
+		rdfs:domain fhir:Observation ;
+		rdfs:range xsd:string .
+
+fhir:valueQuantityCode a owl:DatatypeProperty ;
+		rdfs:domain fhir:Observation ;
+		rdfs:range xsd:string .
+
+fhir:issued a owl:DatatypeProperty ;
+		rdfs:domain fhir:Observation ;
+		rdfs:range xsd:dateTime .
+
+fhir:valueDateTime a owl:DatatypeProperty ;
+		rdfs:domain fhir:Observation ;
+		rdfs:range xsd:dateTime .
+
+fhir:valueString a owl:DatatypeProperty ;
+		rdfs:domain fhir:Observation ;
+		rdfs:range xsd:string .
+#---------------------------------
+# 5. Data Insertion
+#---------------------------------

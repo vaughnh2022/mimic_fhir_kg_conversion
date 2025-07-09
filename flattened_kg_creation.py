@@ -430,7 +430,7 @@ def create_encounter_entities():
             period = get_period(x['period'])
             location_list=location_list+f"\t\t\tfhir:LocationEncounterReference se:{id} ;\n"
             location_line = location_line+f"""\nse:{id} a fhir:LocationEncounter ;
-            fhir:locationEncounterReference se:{reference} ;
+            fhir:locationReference se:{reference} ;
 {period} .
 
 """
@@ -1102,3 +1102,4 @@ def create_observation_entities():
     time_end = time.time()
     move_to_final()
     print(f"observation entity creation took {time_end - time_start:.4f} seconds")
+

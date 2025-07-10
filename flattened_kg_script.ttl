@@ -81,7 +81,7 @@ fhir:serviceProviderReference a owl:ObjectProperty ;
         rdfs:range fhir:Organization .
 
 fhir:subjectReference a owl:ObjectProperty ;
-        rdfs:domain [owl:unionOf ( fhir:Encounter fhir:Condition fhir:MedicationDispense fhir:MedicationRequest fhir:MedicationAdministration fhir:Observation)] ;
+        rdfs:domain [owl:unionOf ( fhir:Specimen fhir:Encounter fhir:Condition fhir:MedicationDispense fhir:MedicationRequest fhir:MedicationAdministration fhir:Observation)] ;
         rdfs:range fhir:Patient .
 
 fhir:encounterReference a owl:ObjectProperty ;
@@ -388,7 +388,7 @@ fhir:routeCodingSystem a owl:DatatypeProperty ;
 		rdfs:range xsd:string .
 
 fhir:collectedDateTime a owl:DatatypeProperty ;
-		rdfs:domain fhir:Procedure ;
+		rdfs:domain [owl:unionOf ( fhir:Procedure fhir:Specimen)] ;
 		rdfs:range xsd:dateTime .
 
 fhir:effectiveDateTime a owl:DatatypeProperty ;
